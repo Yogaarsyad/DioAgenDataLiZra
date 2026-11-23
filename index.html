@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dio si Agen Data</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="pengantar.css">
+</head>
+<body>
+
+<!-- 1. Layar Intro / Animasi Sambutan -->
+<div id="layar-intro" class="modal-layar-penuh">
+    <div class="kotak-intro">
+        <div class="robot-animasi">🤖</div>
+        <h1>Selamat Datang di<br>Misi Agen Data!</h1>
+        <p class="sub-intro">Ayo bantu Dio menyusun balok dan menyelesaikan misi! 🧩</p>
+        <button id="btn-lanjut-intro">Mulai Main ▶️</button>
+    </div>
+</div>
+
+<!-- 2. Layar Pengantar Cara Main (dikelola pengantar.js) -->
+<div id="layar-pengantar" class="modal-layar-penuh sembunyi" role="dialog" aria-modal="true" aria-labelledby="pg-judul">
+    <div class="kotak-pengantar">
+        <div id="pg-titik" class="pg-titik" aria-hidden="true"></div>
+        <div id="pg-adegan" class="adegan" aria-hidden="true"></div>
+        <h2 id="pg-judul" class="pg-judul"></h2>
+        <p id="pg-teks" class="pg-teks" aria-live="polite"></p>
+        <div class="pg-tombol">
+            <button id="pg-kembali" class="pg-btn pg-kembali" type="button">◀ Kembali</button>
+            <button id="pg-lanjut" class="pg-btn pg-lanjut" type="button">Lanjut ▶</button>
+        </div>
+        <button id="pg-lewati" class="pg-lewati" type="button">Lewati pengantar ⏭</button>
+    </div>
+</div>
+
+<!-- 3. Layar Masuk / Pemilihan Akun Peserta -->
+<div id="layar-masuk" class="modal-layar-penuh sembunyi">
+    <div class="kotak-masuk">
+        <h2>👋 Pilih Akun Mainmu!</h2>
+        <p>Silakan pilih <b>Kode Akun Peserta</b> yang sudah diberikan oleh pendamping ya:</p>
+        
+        <select id="select-akun" class="dropdown-akun">
+            <option value="" disabled selected>-- Pilih Akun Peserta --</option>
+        </select>
+        
+        <button id="btn-mulai-main">Siap Meluncur! 🚀</button>
+    </div>
+</div>
+
+<!-- 4. Layar Resume Hasil Bermain (Muncul saat tamat atau saat klik Logout) -->
+<div id="layar-resume" class="modal-layar-penuh sembunyi" role="dialog" aria-modal="true" aria-labelledby="res-judul">
+    <div class="kotak-resume">
+        <div class="res-header">
+            <span id="res-ikon-utama" class="res-trofi">🏆</span>
+            <div>
+                <span id="res-kode" class="badge-agen">🕵️ Akun: P01</span>
+                <h2 id="res-judul">Resume Misi Agen Data</h2>
+                <p id="res-gelar" class="res-gelar">Agen Data Hebat!</p>
+            </div>
+        </div>
+
+        <div id="res-bintang" class="res-bintang">⭐⭐⭐⭐⭐</div>
+
+        <div class="resume-grid-stat">
+            <div class="stat-kartu">
+                <small>Misi Tuntas</small>
+                <strong id="res-stat-misi">0 / 5</strong>
+            </div>
+            <div class="stat-kartu">
+                <small>Total Waktu</small>
+                <strong id="res-stat-waktu">0 dtk</strong>
+            </div>
+            <div class="stat-kartu">
+                <small>Percobaan</small>
+                <strong id="res-stat-run">0x</strong>
+            </div>
+            <div class="stat-kartu">
+                <small>Pakai Lampu</small>
+                <strong id="res-stat-hint">0x</strong>
+            </div>
+        </div>
+
+        <div class="res-bagian-judul">📋 Ringkasan Perjalanan Misi 1 – 5</div>
+        <div id="res-daftar-misi" class="res-daftar-misi"></div>
+
+        <div id="res-catatan" class="res-catatan"></div>
+        <div id="res-status-db" class="res-status-db">Menyimpan resume ke Supabase...</div>
+
+        <div class="res-aksi">
+            <button id="btn-tutup-resume" class="pg-btn pg-kembali" type="button">◀ Lanjut Main</button>
+            <button id="btn-konfirmasi-logout" class="pg-btn res-btn-logout" type="button">🚪 Selesai & Logout</button>
+        </div>
+    </div>
+</div>
+
+<!-- 5. Tampilan Utama Gim -->
+<header class="top">
+    <h1>🤖 Dio si Agen Data</h1>
+    <span id="nama-agen" class="badge-agen sembunyi"></span>
+    <button id="btnResume" class="btn-resume sembunyi" title="Lihat Resume Sementara">📊 Resume</button>
+    <button id="btnSuara" class="suara" aria-label="Nyalakan atau matikan suara">🔊</button>
+    <button id="btnBantuan" class="suara" aria-label="Lihat lagi cara main" title="Cara main">❓</button>
+    <button id="btnLogout" class="btn-logout sembunyi" title="Selesai bermain dan keluar akun">🚪 Logout</button>
+    <div id="bintang" class="bintang" aria-label="Misi yang sudah selesai"></div>
+    <nav id="tabs" aria-label="Pilih misi"></nav>
+</header>
+
+<main class="grid-utama">
+    <div class="kolom-kiri">
+        <section class="kartu" id="misi"></section>
+        
+        <section class="kartu" id="panggung">
+            <div class="dio"><span class="avatar">🤖</span><p id="bicara" class="gelembung">Halo! Aku Dio. Ayo bantu aku!</p></div>
+            <div id="stage"></div>
+        </section>
+    </div>
+
+    <div class="kolom-kanan">
+        <section id="ruang">
+            <div class="judul-ruang">Susun Balokmu Di Sini! 🧩</div>
+            <div class="petunjuk-ruang">Ambil balok dari kotak balok, seret ke sini, lalu sambung di bawah ▶ Mulai.</div>
+            <div id="blocklyDiv"></div>
+            <div id="pesan-singkat" class="sembunyi"></div> 
+        </section>
+
+        <section id="tombol-kerja">
+            <button id="btnRun" class="btn jalan">▶ Jalankan!</button>
+            <button id="btnReset" class="btn ulang">↺ Ulang</button>
+        </section>
+
+        <section id="pesan" class="pesan sembunyi" aria-live="polite"></section>
+    </div>
+</main>
+
+<footer class="kaki">
+    <span id="info">Memuat sistem...</span> 
+    <a href="#" id="btnLog">unduh log</a>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/blockly@10.4.3/blockly_compressed.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/blockly@10.4.3/msg/id.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="script.js"></script>
+<script src="pengantar.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+Game Revisian Saran:
+- Menambahkan efek suara Ketika di jalankan kan suara tiap blok pidah ke stage a ke stage b
+- bahasanya di sesuaiakan dengan mudah dan tambahkan kata penghubung yang mudah di pahmi
+- untuk bagian (Tugasmu) itu nanti di ganti jadi alur penegrjaan dan akan bisa di lihat max 3x nanti ada lambing lampu gitu di tekan max 3 kali untuk tau lihat cara 
+- dan bikin fitur kalo mau hapus drag 1 blok bisa tanpa menghapus blok yang lain biar memepermudah anak
+- tombol 'jalankan' 'ulang' taruh di Bawah lembar kerja
+- dan kalo ada eror tampilkan di lembar kerja dan Saranya juga mungkin bair mudah di lihat sama anakanya 
+
+
+- tanya bisa ga kalo soalnya lebih dari 5 atau ngga? 
