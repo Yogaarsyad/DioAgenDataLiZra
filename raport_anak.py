@@ -1,5 +1,6 @@
 import os
 import json
+import struct
 import requests
 import pandas as pd
 from datetime import datetime
@@ -18,6 +19,7 @@ BUCKET_RAPOR = "rapor-anak"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGO_PATH = os.path.join(BASE_DIR, "foto.jpg")
+LOGO2_PATH = os.path.join(BASE_DIR, "Logo2.png")
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
@@ -25,8 +27,50 @@ HEADERS = {
 }
 
 # =============================================================================
-# 2. AMBIL DATA & UNGGAH PDF KE SUPABASE STORAGE
+# 2. AMBIL DATA, CEK DIMENSI LOGO & UNGGAH PDF KE SUPABASE STORAGE
 # =============================================================================
+def ambil_dimensi_gambar(path_img):
+    """Membaca lebar & tinggi piksel PNG/JPG agar rasio logo selalu proporsional."""
+    try:
+        with open(path_img, "rb") as f:
+            header = f.read(24)
+            # Cek format PNG
+            if header[:8] == b"\x89PNG\r\n\x1a\n" and header[12:16] == b"IHDR":
+                w, h = struct.unpack(">II", header[16:24])
+                return max(1, w), max(1, h)
+            # Cek format JPEG
+            f.seek(0)
+            if f.read(2) == b"\xff\xd8":
+                while True:
+                    marker = f.read(2)
+                    if len(marker) < 2:
+                        break
+                    while marker[0] != 0xFF:
+                        marker = marker[1:] + f.read(1)
+                    code = marker[1]
+                    if code in (0xC0, 0xC1, 0xC2, 0xC3):
+                        f.read(3)
+                        h, w = struct.unpack(">HH", f.read(4))
+                        return max(1, w), max(1, h)
+                    length_bytes = f.read(2)
+                    if len(length_bytes) < 2:
+                        break
+                    length = struct.unpack(">H", length_bytes)[0]
+                    f.seek(length - 2, 1)
+    except Exception:
+        pass
+    return 100, 100
+
+def hitung_ukuran_logo(path_img, max_w=24.0, max_h=17.5):
+    px_w, px_h = ambil_dimensi_gambar(path_img)
+    rasio = px_w / px_h
+    w = max_h * rasio
+    h = max_h
+    if w > max_w:
+        w = max_w
+        h = max_w / rasio
+    return w, h
+
 def ambil_resume_terbaru(id_peserta):
     url = (
         f"{SUPABASE_URL}/rest/v1/{TABEL_RESUMES}"
@@ -102,7 +146,7 @@ def format_durasi(detik):
     return f"{menit} menit {sisa} detik"
 
 # =============================================================================
-# 3. KELAS PDF HASIL EKSPLORASI ANAK (BERSIH, PROFESIONAL & MULTI-HALAMAN)
+# 3. KELAS PDF HASIL EKSPLORASI ANAK (DUA LOGO SEJAJAR & MULTI-HALAMAN)
 # =============================================================================
 class PDFHasilAnak(FPDF):
     def header(self):
@@ -113,35 +157,53 @@ class PDFHasilAnak(FPDF):
         self.rect(0, 3.5, 210, 1.3, 'F')
 
         if self.page_no() == 1:
-            ada_logo = os.path.exists(LOGO_PATH)
-            if ada_logo:
-                # Logo langsung menyatu bersih tanpa kotak bingkai
-                self.image(LOGO_PATH, x=13, y=7.5, h=20)
-                x_teks = 37
-                align_teks = 'L'
-            else:
-                x_teks = 13
-                align_teks = 'C'
+            ada_logo1 = os.path.exists(LOGO_PATH)
+            ada_logo2 = os.path.exists(LOGO2_PATH)
 
-            self.set_xy(x_teks, 8.5)
+            margin_kiri = 13.0
+            margin_kanan = 197.0
+            tinggi_logo_seragam = 17.5
+            y_dasar_logo = 8.0
+
+            w1 = 0.0
+            if ada_logo1:
+                w1, h1 = hitung_ukuran_logo(LOGO_PATH, max_w=22.0, max_h=tinggi_logo_seragam)
+                y1 = y_dasar_logo + (tinggi_logo_seragam - h1) / 2.0
+                self.image(LOGO_PATH, x=margin_kiri, y=y1, w=w1, h=h1)
+
+            w2 = 0.0
+            if ada_logo2:
+                # Lebar maksimal diperluas agar tinggi Logo2 (UP2M) sama persis 17.5 mm seperti LiZra
+                w2, h2 = hitung_ukuran_logo(LOGO2_PATH, max_w=46.0, max_h=tinggi_logo_seragam)
+                x2 = margin_kanan - w2
+                y2 = y_dasar_logo + (tinggi_logo_seragam - h2) / 2.0
+                self.image(LOGO2_PATH, x=x2, y=y2, w=w2, h=h2)
+
+            # Area judul berada rapi di tengah antara Logo 1 (kiri) dan Logo 2 (kanan)
+            x_teks_kiri = margin_kiri + (w1 + 4.0 if ada_logo1 else 0.0)
+            x_teks_kanan = margin_kanan - (w2 + 4.0 if ada_logo2 else 0.0)
+            lebar_teks = max(95.0, x_teks_kanan - x_teks_kiri)
+            align_teks = 'C' if (ada_logo1 and ada_logo2) or (not ada_logo1 and not ada_logo2) else 'L'
+
+            self.set_xy(x_teks_kiri, 8.8)
             self.set_text_color(91, 44, 111)
-            self.set_font('Arial', 'B', 13.5)
-            self.cell(0, 6.5, 'RINGKASAN HASIL EKSPLORASI & BELAJAR ANAK', 0, 1, align_teks)
+            self.set_font('Arial', 'B', 11.4)
+            self.cell(lebar_teks, 6.0, 'RINGKASAN HASIL EKSPLORASI & BELAJAR ANAK', 0, 1, align_teks)
 
-            self.set_x(x_teks)
+            self.set_x(x_teks_kiri)
             self.set_text_color(230, 81, 0)
-            self.set_font('Arial', 'B', 9.5)
-            self.cell(0, 5, 'Permainan Edukasi "Dio si Agen Data"  |  Program Literasi Digital LiZra', 0, 1, align_teks)
+            self.set_font('Arial', 'B', 8.6)
+            self.cell(lebar_teks, 4.7, 'Permainan Edukasi "Dio si Agen Data"  |  Program Literasi Digital LiZra', 0, 1, align_teks)
 
-            self.set_x(x_teks)
+            self.set_x(x_teks_kiri)
             self.set_text_color(115, 115, 115)
-            self.set_font('Arial', '', 8.5)
-            self.cell(0, 4.5, 'Catatan Perkembangan Logika Berpikir & Keamanan Data untuk Orang Tua / Pendamping', 0, 1, align_teks)
+            self.set_font('Arial', '', 7.7)
+            self.cell(lebar_teks, 4.3, 'Catatan Perkembangan Logika Berpikir & Keamanan Data untuk Orang Tua / Pendamping', 0, 1, align_teks)
 
             self.set_draw_color(220, 204, 234)
             self.set_line_width(0.4)
-            self.line(13, 30.5, 197, 30.5)
-            self.set_y(34)
+            self.line(13, 30.0, 197, 30.0)
+            self.set_y(33.5)
         else:
             # Header ringkas & profesional jika dokumen berlanjut ke halaman 2+
             self.set_xy(13, 7.5)
